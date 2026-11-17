@@ -1,0 +1,38 @@
+<?php
+
+/** Kunci akun sistem (Tahap 4 bagian 1) dan tipe akun yang boleh dipetakan. */
+return [
+    'piutang_usaha' => ['label' => 'Piutang Usaha', 'tipe' => ['asset']],
+    'utang_usaha' => ['label' => 'Utang Usaha', 'tipe' => ['liability']],
+    'persediaan' => ['label' => 'Persediaan', 'tipe' => ['asset']],
+    'persediaan_barang_jadi' => ['label' => 'Persediaan Barang Jadi', 'tipe' => ['asset']],
+    'barang_dalam_proses' => ['label' => 'Barang Dalam Proses', 'tipe' => ['asset']],
+    'hpp' => ['label' => 'Harga Pokok Penjualan', 'tipe' => ['cogs']],
+    'penjualan' => ['label' => 'Penjualan', 'tipe' => ['revenue']],
+    'diskon_penjualan' => ['label' => 'Diskon Penjualan', 'tipe' => ['revenue']],
+    'retur_penjualan' => ['label' => 'Retur Penjualan', 'tipe' => ['revenue']],
+    'ppn_keluaran' => ['label' => 'PPN Keluaran', 'tipe' => ['liability']],
+    'ppn_masukan' => ['label' => 'PPN Masukan', 'tipe' => ['asset']],
+    'utang_ppnbm' => ['label' => 'Utang PPnBM', 'tipe' => ['liability']],
+    'uang_muka_penjualan' => ['label' => 'Uang Muka Penjualan', 'tipe' => ['liability']],
+    'uang_muka_pembelian' => ['label' => 'Uang Muka Pembelian', 'tipe' => ['asset']],
+    'barang_terkirim_belum_ditagih' => ['label' => 'Barang Terkirim Belum Ditagih', 'tipe' => ['asset']],
+    'barang_diterima_belum_ditagih' => ['label' => 'Barang Diterima Belum Ditagih', 'tipe' => ['liability']],
+    'penyesuaian_persediaan' => ['label' => 'Penyesuaian Persediaan', 'tipe' => ['cogs', 'expense']],
+    'beban_penyusutan' => ['label' => 'Beban Penyusutan', 'tipe' => ['expense']],
+    'akumulasi_penyusutan' => ['label' => 'Akumulasi Penyusutan', 'tipe' => ['asset']],
+    'laba_rugi_pelepasan_aset' => ['label' => 'Laba/Rugi Pelepasan Aset', 'tipe' => ['other_income', 'other_expense']],
+    'utang_gaji' => ['label' => 'Utang Gaji', 'tipe' => ['liability']],
+    'utang_pph21' => ['label' => 'Utang PPh 21', 'tipe' => ['liability']],
+    'utang_bpjs' => ['label' => 'Utang BPJS', 'tipe' => ['liability']],
+    'beban_gaji' => ['label' => 'Beban Gaji', 'tipe' => ['expense']],
+    'beban_admin_bank' => ['label' => 'Beban Administrasi Bank', 'tipe' => ['expense', 'other_expense']],
+    'pendapatan_lain' => ['label' => 'Pendapatan Lain-lain', 'tipe' => ['other_income']],
+    'pembulatan' => ['label' => 'Pembulatan', 'tipe' => ['other_income', 'other_expense']],
+    'ikhtisar_laba_rugi' => ['label' => 'Ikhtisar Laba Rugi', 'tipe' => ['equity']],
+    'laba_ditahan' => ['label' => 'Laba Ditahan', 'tipe' => ['equity']],
+    'laba_tahun_berjalan' => ['label' => 'Laba Tahun Berjalan', 'tipe' => ['equity']],
+    // Fase mata uang asing (disiapkan)
+    'selisih_kurs_realisasi' => ['label' => 'Selisih Kurs Terealisasi', 'tipe' => ['other_income', 'other_expense']],
+    'selisih_kurs_belum_realisasi' => ['label' => 'Selisih Kurs Belum Terealisasi', 'tipe' => ['other_income', 'other_expense']],
+];
