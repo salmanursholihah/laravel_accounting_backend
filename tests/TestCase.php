@@ -15,6 +15,9 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // Tes lama mengandaikan master Pajak/Syarat kosong; data bawaan diuji khusus di SeedTaxAndTermDefaultsTest.
+        config(['tax_defaults.seed_on_company_created' => false]);
+
         if (! self::$mesinDbSudahDicek) {
             $this->pastikanMySqlAsli();
             self::$mesinDbSudahDicek = true;

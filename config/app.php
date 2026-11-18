@@ -174,6 +174,7 @@ return [
          */
         App\Modules\Platform\PlatformServiceProvider::class,
         App\Modules\Accounting\AccountingServiceProvider::class,
+        App\Modules\CashBank\CashBankServiceProvider::class,
     ])->toArray(),
 
     /*

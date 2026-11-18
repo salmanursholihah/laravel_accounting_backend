@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Accounting\Http\Controllers\AccountController;
+use App\Modules\Accounting\Http\Controllers\DocumentPostingController;
 use App\Modules\Accounting\Http\Controllers\JournalController;
 use App\Modules\Accounting\Http\Controllers\LedgerReportController;
 use App\Modules\Accounting\Http\Controllers\NumberingController;
@@ -48,6 +49,10 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', 'company'])->group(f
     Route::post('journals', [JournalController::class, 'store'])->middleware('feature:jurnal_umum,post');
     Route::post('journal-corrections', [JournalController::class, 'correct'])->middleware('feature:khusus,jurnal_koreksi');
     Route::post('journals/{id}/void', [JournalController::class, 'void'])->whereNumber('id')->middleware('feature:jurnal_umum,void');
+
+    // UC-62/63 Posting dan Void dokumen akuntansi apa pun (hak dicek per dokumen oleh orkestrator)
+    Route::post('documents/{docType}/{id}/post', [DocumentPostingController::class, 'post'])->whereNumber('id');
+    Route::post('documents/{docType}/{id}/void', [DocumentPostingController::class, 'void'])->whereNumber('id');
 
     // UC-16 Saldo awal
     Route::get('opening-balances', [OpeningBalanceController::class, 'index'])->middleware('feature:jurnal_umum,view');
