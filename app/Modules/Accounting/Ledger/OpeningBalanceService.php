@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\DB;
  * UC-16 Saldo awal (migrasi). Baris opening_balances dengan journal_id NULL = draf; setelah diposting menjadi
  * satu jurnal tipe 'opening' (is_opening = true) pada tanggal mulai pembukuan. Total wajib seimbang.
  * 'jumlah' positif = sesuai saldo normal akun, negatif = berlawanan (mis. akun kontra).
- * Saldo awal stok (persediaan per gudang) menyusul bersama inti stok (Step 4).
+ * Saldo awal stok (persediaan per gudang) dikelola modul stok lewat OpeningStockPort: nilainya masuk sebagai debit
+ * akun persediaan ke jurnal yang sama, dan gerakan stoknya dicatat dalam transaksi yang sama (post) atau dibalik (void).
  */
 class OpeningBalanceService
 {
@@ -23,6 +24,7 @@ class OpeningBalanceService
         private JournalService $journals,
         private JournalValidator $validator,
         private AuditLogger $audit,
+        private OpeningStockPort $stock,
     ) {
     }
 
@@ -105,14 +107,19 @@ class OpeningBalanceService
 
             $companyId = $this->current->id();
             $draft = DB::table('opening_balances')->where('company_id', $companyId)->whereNull('journal_id')->lockForUpdate()->orderBy('id')->get();
-            if ($draft->isEmpty()) {
+            $stockAmounts = $this->stock->draftAccountAmounts();
+            if ($draft->isEmpty() && $stockAmounts === []) {
                 throw JournalException::openingEmpty();
             }
 
-            $accounts = Account::query()->whereIn('id', $draft->pluck('account_id')->unique()->all())->get()->keyBy('id');
+            $ids = $draft->pluck('account_id')->merge(array_keys($stockAmounts))->unique()->all();
+            $accounts = Account::query()->whereIn('id', $ids)->get()->keyBy('id');
             $lines = [];
             foreach ($draft as $r) {
                 $a = $accounts->get($r->account_id) ?? throw JournalException::accountNotFound((int) $r->account_id);
+                if (isset($stockAmounts[(int) $r->account_id])) {
+                    throw new JournalException("Akun {$a->kode} terisi dari saldo awal stok. Hapus baris manual akun ini; nilainya dihitung dari daftar saldo awal stok.", 'stock_account_conflict', ['kode' => $a->kode]);
+                }
                 if (in_array($a->sub_tipe, ['receivable', 'payable'], true) && ! $r->contact_id) {
                     throw JournalException::contactRequired($a->kode);
                 }
@@ -130,8 +137,21 @@ class OpeningBalanceService
                 ];
             }
 
+            foreach ($stockAmounts as $accountId => $nilai) {
+                $a = $accounts->get((int) $accountId) ?? throw JournalException::accountNotFound((int) $accountId);
+                $debitSide = $a->saldo_normal === 'debit'; // akun persediaan: aset, normal debit
+                $lines[] = [
+                    'account_id' => (int) $accountId,
+                    'debit' => $debitSide ? $nilai : '0',
+                    'kredit' => $debitSide ? '0' : $nilai,
+                    'memo' => 'Saldo awal stok',
+                    'contact_id' => null,
+                ];
+            }
+
+            $tanggalBuku = $this->current->company()->tanggal_mulai_pembukuan->toDateString();
             $journal = $this->journals->post(new JournalDraft(
-                tanggal: $this->current->company()->tanggal_mulai_pembukuan->toDateString(),
+                tanggal: $tanggalBuku,
                 tipe: 'opening',
                 lines: $lines,
                 memo: 'Saldo awal',
@@ -139,7 +159,10 @@ class OpeningBalanceService
                 userId: (int) $user->getKey(),
             ));
 
-            DB::table('opening_balances')->whereIn('id', $draft->pluck('id')->all())->update(['journal_id' => $journal->getKey()]);
+            if ($draft->isNotEmpty()) {
+                DB::table('opening_balances')->whereIn('id', $draft->pluck('id')->all())->update(['journal_id' => $journal->getKey()]);
+            }
+            $this->stock->commit((int) $journal->getKey(), $tanggalBuku, (int) $user->getKey());
 
             return $journal;
         });
@@ -157,6 +180,7 @@ class OpeningBalanceService
                 ->where('company_id', $this->current->id())
                 ->where('journal_id', $j->getKey())
                 ->update(['journal_id' => null]);
+            $this->stock->revert((int) $j->getKey(), $rev->tanggal->toDateString());
 
             return $rev;
         });

@@ -28,6 +28,7 @@ class AccountingServiceProvider extends ServiceProvider
         $this->app->singleton(JournalRuleRegistry::class);
         // Port stok: modul persediaan (Langkah 4) menggantinya dengan implementasi nyata
         $this->app->bindIf(StockMovementApplier::class, NoStockMovement::class);
+        $this->app->bindIf(\App\Modules\Accounting\Ledger\OpeningStockPort::class, \App\Modules\Accounting\Ledger\NullOpeningStock::class);
     }
 
     public function boot(): void
