@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 class BankAccountController extends Controller
 {
     /** Fitur yang membutuhkan daftar rekening (Kasir hanya punya penerimaan/pembayaran/transfer_bank). */
-    private const READ_FEATURES = ['penerimaan', 'pembayaran', 'transfer_bank', 'pencatatan_beban', 'histori_bank', 'akun_perkiraan', 'rekonsiliasi_bank'];
+    private const READ_FEATURES = ['penerimaan', 'pembayaran', 'transfer_bank', 'pencatatan_beban', 'pembayaran_pembelian', 'histori_bank', 'akun_perkiraan', 'rekonsiliasi_bank'];
 
     public function index(Request $request, PermissionChecker $perm, BankHistoryService $service): JsonResponse
     {
