@@ -37,4 +37,8 @@ Route::prefix('api/v1')->middleware(['api', 'auth:sanctum', 'company'])->group(f
     // UC-53 Barang per Gudang dan Kartu Stok
     Route::get('reports/stock-by-warehouse', [StockReportController::class, 'perWarehouse'])->middleware('feature:barang_per_gudang,view');
     Route::get('reports/stock-card', [StockReportController::class, 'stockCard'])->middleware('feature:barang_per_gudang,view');
+
+    // Step 7A: hitung ulang HPP transaksi mundur
+    Route::get('stock/recalc/pending', [\App\Modules\Stock\Http\Controllers\StockRecalcController::class, 'pending'])->middleware('feature:barang_per_gudang,view');
+    Route::post('stock/recalc', [\App\Modules\Stock\Http\Controllers\StockRecalcController::class, 'run'])->middleware('feature:penyesuaian_persediaan,view');
 });

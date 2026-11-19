@@ -5,6 +5,7 @@ namespace App\Modules\Accounting;
 use App\Modules\Accounting\ChartOfAccounts\SystemAccountService;
 use App\Modules\Accounting\Listeners\ApplyChartTemplateForCompany;
 use App\Modules\Accounting\Listeners\DeactivatePpnForNonPkp;
+use App\Modules\Accounting\Listeners\SeedApprovalRulesForCompany;
 use App\Modules\Accounting\Listeners\SeedTaxAndTermsForCompany;
 use App\Modules\Accounting\Listeners\SetupAccountingForCompany;
 use App\Modules\Accounting\Posting\JournalRuleRegistry;
@@ -37,6 +38,7 @@ class AccountingServiceProvider extends ServiceProvider
         Event::listen(CompanyCreated::class, SetupAccountingForCompany::class);
         Event::listen(CompanyCreated::class, ApplyChartTemplateForCompany::class);
         Event::listen(CompanyCreated::class, SeedTaxAndTermsForCompany::class); // setelah bagan akun: butuh akun PPN
+        Event::listen(CompanyCreated::class, SeedApprovalRulesForCompany::class); // 6A.5: aturan approval bawaan
 
         Event::listen(TaxModeChanged::class, DeactivatePpnForNonPkp::class);
 

@@ -71,7 +71,7 @@ class StockLedgerService implements StockMovementApplier
                 [$harga, $nilai, $newQty, $newNilai, $newHpp] = $this->computeOut($bal, $m);
             }
 
-            $this->write($sourceType, $sourceId, $tanggal, $m['item_id'], $m['warehouse_id'], $m['arah'], $m['qty'], $harga, $nilai, $newQty, $newNilai, $newHpp, null);
+            $this->write($sourceType, $sourceId, $tanggal, $m['item_id'], $m['warehouse_id'], $m['arah'], $m['qty'], $harga, $nilai, $newQty, $newNilai, $newHpp, null, $m['harga_satuan'] !== null);
 
             $lines[] = ['item_id' => $m['item_id'], 'warehouse_id' => $m['warehouse_id'], 'arah' => $m['arah'], 'qty' => $m['qty'], 'harga_satuan' => $harga, 'nilai' => $nilai];
             if ($m['arah'] === 'in') {
@@ -199,14 +199,14 @@ class StockLedgerService implements StockMovementApplier
         return Money::round($old);
     }
 
-    private function write(string $sourceType, int $sourceId, string $tanggal, int $itemId, int $whId, string $arah, string $qty, string $harga, string $nilai, string $newQty, string $newNilai, string $newHpp, ?int $reversedOf): void
+    private function write(string $sourceType, int $sourceId, string $tanggal, int $itemId, int $whId, string $arah, string $qty, string $harga, string $nilai, string $newQty, string $newNilai, string $newHpp, ?int $reversedOf, bool $hargaTetap = false): void
     {
         $cid = $this->current->id();
 
         DB::table('stock_ledger')->insert([
             'company_id' => $cid, 'tanggal' => $tanggal, 'item_id' => $itemId, 'warehouse_id' => $whId,
             'qty_masuk' => $arah === 'in' ? $qty : '0', 'qty_keluar' => $arah === 'out' ? $qty : '0',
-            'harga_satuan' => $harga, 'nilai' => $nilai,
+            'harga_satuan' => $harga, 'nilai' => $nilai, 'harga_tetap' => $hargaTetap,
             'qty_saldo' => Money::round($newQty), 'nilai_saldo' => Money::round($newNilai),
             'source_type' => $sourceType, 'source_id' => $sourceId, 'reversed_of_id' => $reversedOf,
             'created_by' => Auth::id(), 'created_at' => now(),

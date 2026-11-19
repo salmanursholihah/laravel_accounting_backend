@@ -102,7 +102,7 @@ class StockTest extends TestCase
         return app(StockAdjustmentService::class)->create(['tanggal' => $tanggal, 'warehouse_id' => $this->gudang, 'alasan' => 'Uji', 'lines' => $lines], $by ?? $this->owner);
     }
 
-    private function post(int $id, ?User $u = null)
+    private function postAdj(int $id, ?User $u = null)
     {
         return app(PostingOrchestrator::class)->post('stock_adjustment', $id, $u ?? $this->owner);
     }
@@ -290,7 +290,7 @@ class StockTest extends TestCase
     {
         $i = $this->item();
         $adj = $this->adjust([['item_id' => $i->id, 'qty_selisih' => '10', 'harga_satuan' => '100']]);
-        $r = $this->post($adj->id);
+        $r = $this->postAdj($adj->id);
 
         $this->assertMatchesRegularExpression('#^ADJ/2026/03/#', $r->nomor);
         $this->assertSame('1000.0000', $this->net($this->acc('persediaan')));
@@ -299,7 +299,7 @@ class StockTest extends TestCase
         $this->assertSame('1000.0000', (string) $adj->fresh()->lines->first()->nilai);
 
         $adj2 = $this->adjust([['item_id' => $i->id, 'qty_selisih' => '-4']], '2026-03-11');
-        $this->post($adj2->id);
+        $this->postAdj($adj2->id);
         $this->assertSame('600.0000', $this->net($this->acc('persediaan')));            // 1000 - 400
         $this->assertSame('-600.0000', $this->net($this->acc('penyesuaian_persediaan')));
         $this->assertSame('6.0000', $this->bal($i)->qty_saldo);
@@ -316,7 +316,7 @@ class StockTest extends TestCase
         $cat = $m->create('item-categories', ['kode' => 'K1', 'nama' => 'Kat', 'akun_persediaan_id' => $akun], $this->owner);
         $i = $m->create('items', ['kode' => 'X', 'nama' => 'X', 'tipe' => 'barang', 'unit_id' => $this->unit, 'category_id' => $cat->id], $this->owner);
 
-        $this->post($this->adjust([['item_id' => $i->id, 'qty_selisih' => '2', 'harga_satuan' => '50']])->id);
+        $this->postAdj($this->adjust([['item_id' => $i->id, 'qty_selisih' => '2', 'harga_satuan' => '50']])->id);
         $this->assertSame('100.0000', $this->net($akun));
         $this->assertSame('0.0000', $this->net($this->acc('persediaan')));
     }
@@ -327,7 +327,7 @@ class StockTest extends TestCase
         $adj = $this->adjust([['item_id' => $i->id, 'qty_selisih' => '-1']]);
 
         try {
-            $this->post($adj->id);
+            $this->postAdj($adj->id);
             $this->fail('Seharusnya ditolak');
         } catch (StockException $e) {
             $this->assertSame('insufficient_stock', $e->errorCode);
@@ -344,7 +344,7 @@ class StockTest extends TestCase
     {
         $i = $this->item();
         $adj = $this->adjust([['item_id' => $i->id, 'qty_selisih' => '10', 'harga_satuan' => '100']]);
-        $this->post($adj->id);
+        $this->postAdj($adj->id);
 
         app(PostingOrchestrator::class)->void('stock_adjustment', $adj->id, 'Salah hitung', $this->owner);
 
@@ -363,7 +363,7 @@ class StockTest extends TestCase
         $periods->close($periods->periodFor('2026-03-10'), $this->owner);
 
         try {
-            $this->post($adj->id);
+            $this->postAdj($adj->id);
             $this->fail();
         } catch (PeriodException $e) {
             $this->assertSame('period_closed', $e->errorCode);
@@ -393,7 +393,7 @@ class StockTest extends TestCase
         }
 
         $adj = $this->adjust([['item_id' => $i->id, 'qty_selisih' => '1', 'harga_satuan' => '5']]);
-        $this->post($adj->id);
+        $this->postAdj($adj->id);
         $this->expectException(StockException::class);
         app(StockAdjustmentService::class)->delete($adj->id, $this->owner);
     }

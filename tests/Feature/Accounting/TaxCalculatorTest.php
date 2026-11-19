@@ -35,7 +35,7 @@ class TaxCalculatorTest extends TestCase
     }
 
     /** Siapkan master pajak di perusahaan aktif (sekali per perusahaan), lalu jalankan $fn. */
-    private function run(Company $c, callable $fn): mixed
+    private function withTax(Company $c, callable $fn): mixed
     {
         return app(CurrentCompany::class)->runAs($c, function () use ($fn) {
             if (! \App\Modules\Accounting\Tax\TaxCode::query()->where('kode', 'PPN')->exists()) {
@@ -55,7 +55,7 @@ class TaxCalculatorTest extends TestCase
     public function test_kasus_wajib_10_juta_tarif_12_dpp_11_per_12(): void
     {
         $c = $this->company();
-        $r = $this->run($c, fn (TaxCalculator $calc) => $calc->calculate([
+        $r = $this->withTax($c, fn (TaxCalculator $calc) => $calc->calculate([
             'tanggal' => '2026-11-17',
             'lines' => [['qty' => '1', 'harga' => '10000000', 'tax_code_id' => $this->id['baru']]],
         ]));
@@ -70,7 +70,7 @@ class TaxCalculatorTest extends TestCase
     public function test_harga_termasuk_pajak_menghitung_mundur_dan_total_konsisten(): void
     {
         $c = $this->company();
-        $r = $this->run($c, fn (TaxCalculator $calc) => $calc->calculate([
+        $r = $this->withTax($c, fn (TaxCalculator $calc) => $calc->calculate([
             'tanggal' => '2026-11-17', 'harga_termasuk_pajak' => true,
             'lines' => [['qty' => '1', 'harga' => '11100000', 'tax_code_id' => $this->id['baru']]],
         ]));
@@ -83,7 +83,7 @@ class TaxCalculatorTest extends TestCase
     public function test_tarif_lama_dipakai_untuk_tanggal_lama(): void
     {
         $c = $this->company();
-        $r = $this->run($c, fn (TaxCalculator $calc) => $calc->calculate([
+        $r = $this->withTax($c, fn (TaxCalculator $calc) => $calc->calculate([
             'tanggal' => '2024-06-01', // pakai id versi BARU, tanggal memilih versi lama
             'lines' => [['qty' => '1', 'harga' => '10000000', 'tax_code_id' => $this->id['baru']]],
         ]));
@@ -96,7 +96,7 @@ class TaxCalculatorTest extends TestCase
     public function test_non_pkp_pajak_nol(): void
     {
         $c = $this->company(false);
-        $r = $this->run($c, fn (TaxCalculator $calc) => $calc->calculate([
+        $r = $this->withTax($c, fn (TaxCalculator $calc) => $calc->calculate([
             'tanggal' => '2026-11-17',
             'lines' => [['qty' => '1', 'harga' => '10000000', 'tax_code_id' => $this->id['baru']]],
         ]));
@@ -106,7 +106,7 @@ class TaxCalculatorTest extends TestCase
         $this->assertSame('10000000.0000', $r['total']);
 
         // harga termasuk pajak pada non-PKP: tidak dihitung mundur
-        $r = $this->run($c, fn (TaxCalculator $calc) => $calc->calculate([
+        $r = $this->withTax($c, fn (TaxCalculator $calc) => $calc->calculate([
             'tanggal' => '2026-11-17', 'harga_termasuk_pajak' => true,
             'lines' => [['qty' => '1', 'harga' => '11100000', 'tax_code_id' => $this->id['baru']]],
         ]));
@@ -117,7 +117,7 @@ class TaxCalculatorTest extends TestCase
     public function test_diskon_baris_dan_diskon_header_proporsional(): void
     {
         $c = $this->company();
-        $r = $this->run($c, fn (TaxCalculator $calc) => $calc->calculate([
+        $r = $this->withTax($c, fn (TaxCalculator $calc) => $calc->calculate([
             'tanggal' => '2026-11-17', 'diskon_header' => '300',
             'lines' => [
                 ['qty' => 1, 'harga' => 1000, 'tax_code_id' => $this->id['baru']],
@@ -133,7 +133,7 @@ class TaxCalculatorTest extends TestCase
         $this->assertSame('2997.0000', $r['total']);
 
         // diskon baris persen: 2 x 1000 x (1 - 10%) = 1800
-        $r = $this->run($c, fn (TaxCalculator $calc) => $calc->calculate([
+        $r = $this->withTax($c, fn (TaxCalculator $calc) => $calc->calculate([
             'tanggal' => '2026-11-17', 'lines' => [['qty' => 2, 'harga' => 1000, 'diskon_persen' => '10']],
         ]));
         $this->assertSame('1800.0000', $r['total']);
@@ -142,7 +142,7 @@ class TaxCalculatorTest extends TestCase
     public function test_pembulatan_pajak_per_dokumen_bukan_per_baris(): void
     {
         $c = $this->company();
-        $r = $this->run($c, fn (TaxCalculator $calc) => $calc->calculate([
+        $r = $this->withTax($c, fn (TaxCalculator $calc) => $calc->calculate([
             'tanggal' => '2026-11-17',
             'lines' => array_fill(0, 3, ['qty' => 1, 'harga' => 15, 'tax_code_id' => $this->id['p11']]), // 3 x 1,65
         ]));
@@ -157,7 +157,7 @@ class TaxCalculatorTest extends TestCase
     public function test_selisih_pembulatan_total_ke_akun_pembulatan(): void
     {
         $c = $this->company();
-        $r = $this->run($c, fn (TaxCalculator $calc) => $calc->calculate([
+        $r = $this->withTax($c, fn (TaxCalculator $calc) => $calc->calculate([
             'tanggal' => '2026-11-17', 'lines' => [['qty' => '1.5', 'harga' => '333']], // 499,5
         ]));
 
@@ -171,7 +171,7 @@ class TaxCalculatorTest extends TestCase
     public function test_ppn_dan_ppnbm_bersamaan_dan_ongkir(): void
     {
         $c = $this->company();
-        $r = $this->run($c, fn (TaxCalculator $calc) => $calc->calculate([
+        $r = $this->withTax($c, fn (TaxCalculator $calc) => $calc->calculate([
             'tanggal' => '2026-11-17', 'ongkir' => '50000',
             'lines' => [['qty' => 1, 'harga' => 1000000, 'tax_code_ids' => [$this->id['p11'], $this->id['bm']]]],
         ]));
@@ -187,7 +187,7 @@ class TaxCalculatorTest extends TestCase
     {
         $c = $this->company();
 
-        $this->run($c, function (TaxCalculator $calc) {
+        $this->withTax($c, function (TaxCalculator $calc) {
             foreach ([
                 ['diskon_header' => '999999999'],
                 ['lines' => [['qty' => -1, 'harga' => 10]]],

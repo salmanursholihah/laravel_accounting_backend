@@ -20,6 +20,8 @@ final class JournalDraft
         public ?int $reversedOfId = null,
         public ?int $branchId = null,
         public ?int $userId = null,
+        /** true menandai jurnal ini sebagai jurnal penutup walau tipenya bukan 'closing' (pembalik jurnal penutup saat buka kembali tahun buku). */
+        public bool $closing = false,
     ) {
     }
 }

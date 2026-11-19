@@ -124,6 +124,7 @@ class PeriodService
         DB::transaction(function () use ($period, $user) {
             $period->update(['status' => 'closed', 'ditutup_oleh' => $user->getKey(), 'ditutup_pada' => now()]);
             $this->audit->log('accounting_period', (int) $period->getKey(), 'close', ['status' => 'open'], ['status' => 'closed'], null, null, (int) $user->getKey());
+            \App\Modules\Accounting\Reports\DashboardCache::bump((int) $period->company_id); // 6D
         });
     }
 
@@ -143,6 +144,7 @@ class PeriodService
         DB::transaction(function () use ($period, $user, $alasan) {
             $period->update(['status' => 'open', 'ditutup_oleh' => null, 'ditutup_pada' => null]);
             $this->audit->log('accounting_period', (int) $period->getKey(), 'reopen', ['status' => 'closed'], ['status' => 'open'], $alasan, null, (int) $user->getKey());
+            \App\Modules\Accounting\Reports\DashboardCache::bump((int) $period->company_id); // 6D
         });
     }
 }

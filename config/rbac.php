@@ -19,7 +19,7 @@ return [
         'persediaan' => ['barang_jasa', 'gudang', 'satuan_barang', 'penyesuaian_persediaan', 'barang_per_gudang', 'pemindahan_barang', 'pekerjaan_pesanan', 'penambahan_bahan_baku', 'perintah_stok_opname', 'hasil_stok_opname', 'barang_stok_minimum', 'permintaan_barang', 'merek_barang', 'pemenuhan_pesanan'],
         'aset_tetap' => ['aset_tetap', 'kategori_aset', 'disposisi_aset_tetap', 'kategori_aset_tetap_pajak', 'perubahan_aset_tetap', 'pindah_aset', 'aset_per_lokasi'],
         'smartlink_tax' => ['email_faktur_pajak', 'e_faktur_ctas'],
-        'laporan' => ['daftar_laporan', 'spt_ppn_ppnbm', 'analisa_ai'],
+        'laporan' => ['daftar_laporan', 'laporan_keuangan', 'umur_piutang', 'umur_utang', 'spt_ppn_ppnbm', 'analisa_ai'],
     ],
 
     // Dokumen akuntansi/stok yang punya aksi tambahan: post dan void
@@ -52,7 +52,7 @@ return [
             'penjualan' => ['faktur_penjualan' => 'C', 'penerimaan_penjualan' => 'C', 'retur_penjualan' => 'C', 'uang_muka_penjualan' => 'C', 'pelanggan' => 'C', 'penawaran_penjualan' => 'C', 'pesanan_penjualan' => 'C'],
             'pembelian' => ['pembayaran_pembelian' => 'V', 'perintah_pembayaran' => 'V'],
             'persediaan' => 'V',
-            'laporan' => ['daftar_laporan' => 'V'],
+            'laporan' => ['daftar_laporan' => 'V', 'umur_piutang' => 'V'],
         ],
         'Gudang' => [
             'dashboard' => 'V', 'perusahaan' => 'V',
@@ -65,7 +65,7 @@ return [
             'dashboard' => 'V', 'perusahaan' => 'V',
             'pembelian' => ['pemasok' => 'C', 'faktur_pembelian' => 'C', 'retur_pembelian' => 'C', 'pesanan_pembelian' => 'C', 'penerimaan_barang' => 'C', 'uang_muka_pembelian' => 'C', 'kategori_pemasok' => 'C', 'harga_pemasok' => 'C', 'perintah_pembayaran' => 'C', 'transfer_pemasok' => 'C'],
             'persediaan' => ['barang_jasa' => 'V', 'barang_per_gudang' => 'V', 'barang_stok_minimum' => 'V', 'permintaan_barang' => 'C'],
-            'laporan' => ['daftar_laporan' => 'V'],
+            'laporan' => ['daftar_laporan' => 'V', 'umur_utang' => 'V'],
         ],
     ],
 

@@ -2,6 +2,7 @@
 
 namespace App\Modules\CashBank\Documents;
 
+use App\Modules\Accounting\Approval\ApprovalService;
 use App\Models\User;
 use App\Modules\Accounting\ChartOfAccounts\Account;
 use App\Modules\Accounting\Periods\PeriodService;
@@ -112,6 +113,7 @@ abstract class LineDocumentService
     {
         return DB::transaction(function () use ($id, $data, $user) {
             $doc = ($this->modelClass())::query()->lockForUpdate()->findOrFail($id);
+            $doc = app(ApprovalService::class)->releaseIfPending($doc, $this->docType()); // 6A.4: ubah dokumen pending = batalkan pengajuan
             $this->assertDraft($doc);
 
             if (isset($data['version']) && (int) $data['version'] !== (int) $doc->version) {

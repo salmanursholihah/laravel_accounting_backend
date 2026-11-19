@@ -159,6 +159,7 @@ class PostingOrchestrator
     /** Ditulis di transaksi yang sama; worker mengirimnya setelah commit. */
     private function outbox(string $event, string $docType, int $docId, array $extra): void
     {
+        \App\Modules\Accounting\Reports\DashboardCache::bump($this->current->id()); // 6D: batalkan cache dashboard setelah commit
         DB::table('outbox_events')->insert([
             'company_id' => $this->current->id(),
             'event_type' => $event,

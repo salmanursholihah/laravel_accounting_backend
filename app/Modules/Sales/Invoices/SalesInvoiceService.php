@@ -2,6 +2,7 @@
 
 namespace App\Modules\Sales\Invoices;
 
+use App\Modules\Accounting\Approval\ApprovalService;
 use App\Models\User;
 use App\Modules\Accounting\ChartOfAccounts\Account;
 use App\Modules\Accounting\PaymentTerms\PaymentTerm;
@@ -90,6 +91,7 @@ class SalesInvoiceService
     {
         return DB::transaction(function () use ($id, $data, $user) {
             $doc = SalesInvoice::query()->lockForUpdate()->find($id) ?? throw SalesException::notFound('Faktur penjualan');
+            $doc = app(ApprovalService::class)->releaseIfPending($doc, self::DOC); // 6A.4: ubah dokumen pending = batalkan pengajuan
             if ($doc->status !== 'draft') {
                 throw SalesException::notDraft((string) $doc->status);
             }

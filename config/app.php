@@ -177,6 +177,7 @@ return [
         App\Modules\CashBank\CashBankServiceProvider::class,
         App\Modules\Stock\StockServiceProvider::class,
         App\Modules\Sales\SalesServiceProvider::class,
+        App\Modules\Purchasing\PurchasingServiceProvider::class,
     ])->toArray(),
 
     /*

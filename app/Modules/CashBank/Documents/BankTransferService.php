@@ -2,6 +2,7 @@
 
 namespace App\Modules\CashBank\Documents;
 
+use App\Modules\Accounting\Approval\ApprovalService;
 use App\Models\User;
 use App\Modules\Accounting\Periods\PeriodService;
 use App\Modules\Accounting\Support\Money;
@@ -68,6 +69,7 @@ class BankTransferService
     {
         return DB::transaction(function () use ($id, $data, $user) {
             $doc = BankTransfer::query()->lockForUpdate()->findOrFail($id);
+            $doc = app(ApprovalService::class)->releaseIfPending($doc, $this->docType()); // 6A.4: ubah dokumen pending = batalkan pengajuan
             if ($doc->status !== 'draft') {
                 throw CashBankException::notDraft((string) $doc->status);
             }

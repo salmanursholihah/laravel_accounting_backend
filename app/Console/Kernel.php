@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Step 7A: hitung ulang HPP transaksi mundur; satu proses sekaligus, tidak menumpuk bila lambat
+        $schedule->command('stock:recalc')->everyFiveMinutes()->withoutOverlapping();
     }
 
     /**

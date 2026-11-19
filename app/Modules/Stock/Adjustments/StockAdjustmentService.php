@@ -2,6 +2,7 @@
 
 namespace App\Modules\Stock\Adjustments;
 
+use App\Modules\Accounting\Approval\ApprovalService;
 use App\Models\User;
 use App\Modules\Accounting\Periods\PeriodService;
 use App\Modules\Platform\Audit\AuditLogger;
@@ -64,6 +65,7 @@ class StockAdjustmentService
     {
         return DB::transaction(function () use ($id, $data, $user) {
             $doc = StockAdjustment::query()->lockForUpdate()->findOrFail($id);
+            $doc = app(ApprovalService::class)->releaseIfPending($doc, self::DOC); // 6A.4: ubah dokumen pending = batalkan pengajuan
             $this->assertDraft($doc);
             if (isset($data['version']) && (int) $data['version'] !== (int) $doc->version) {
                 throw StockException::conflict();

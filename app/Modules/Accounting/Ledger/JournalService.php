@@ -46,6 +46,7 @@ class JournalService
             $period = $this->periods->assertPostable($d->tanggal);        // aturan 4, 5
 
             $nomor = $this->numbering->next('journal', $d->tanggal);      // aturan 8
+            $isClosing = $d->tipe === 'closing' || $d->closing;           // masuk kolom saldo *_penutup
             $companyId = $this->current->id();
             $tanggal = CarbonImmutable::parse($d->tanggal)->toDateString();
 
@@ -59,7 +60,7 @@ class JournalService
                 'source_id' => $d->sourceId,
                 'reversed_of_id' => $d->reversedOfId,
                 'is_opening' => $d->tipe === 'opening',
-                'is_closing' => $d->tipe === 'closing',
+                'is_closing' => $isClosing,
                 'memo' => $d->memo !== null ? mb_substr($d->memo, 0, 500) : null,
                 'total_debit' => $norm['total_debit'],
                 'total_kredit' => $norm['total_kredit'],
@@ -79,13 +80,15 @@ class JournalService
                 'tanggal' => $tanggal,
             ], $norm['lines']));
 
-            $this->balances->apply($period, $norm['lines'], $d->tipe === 'closing');
+            $this->balances->apply($period, $norm['lines'], $isClosing);
 
             $this->audit->log('journal', (int) $journal->getKey(), 'post', null, [
                 'nomor' => $nomor, 'tanggal' => $tanggal, 'tipe' => $d->tipe,
                 'source_type' => $d->sourceType, 'source_id' => $d->sourceId,
                 'total' => $norm['total_debit'],
             ], null, $companyId, $userId);
+
+            \App\Modules\Accounting\Reports\DashboardCache::bump($companyId); // 6D
 
             return $journal;
         });
@@ -94,7 +97,7 @@ class JournalService
     /**
      * Membalik satu jurnal. Tanggal pembalik: tanggal asli bila periodenya Open; bila terkunci mengikuti Preferensi
      * (today = hari ini, next_open_period = awal periode terbuka berikutnya). Jurnal penutup tidak bisa dibalik di sini
-     * (hanya lewat buka kembali tahun buku oleh Owner), jurnal pembalik tidak bisa dibalik lagi.
+     * (hanya lewat buka kembali tahun buku oleh Owner: reverseClosing()), jurnal pembalik tidak bisa dibalik lagi.
      */
     public function reverse(Journal|int $journal, string $reason, ?int $userId = null): Journal
     {
@@ -153,6 +156,66 @@ class JournalService
             $this->audit->log('journal', (int) $orig->getKey(), 'void', ['nomor' => $orig->nomor], [
                 'jurnal_pembalik_id' => (int) $rev->getKey(), 'jurnal_pembalik' => $rev->nomor,
                 'tanggal_pembalik' => $tanggalBalik,
+            ], $reason, (int) $this->current->id(), $userId);
+
+            return $rev;
+        });
+    }
+
+    /**
+     * Membalik jurnal PENUTUP. Hanya dipanggil oleh FiscalYearCloseService::reopen() (hak buka_kunci_periode, Owner),
+     * setelah periode terakhir tahun buku dibuka kembali. Pembalik memakai tanggal asli dan ditandai is_closing supaya
+     * saldonya masuk kolom *_penutup seperti jurnal asalnya (laporan Laba Rugi tetap mengabaikannya).
+     */
+    public function reverseClosing(Journal|int $journal, string $reason, ?int $userId = null): Journal
+    {
+        $userId ??= Auth::id() ?? throw JournalException::noUser();
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw JournalException::reasonRequired();
+        }
+
+        return DB::transaction(function () use ($journal, $reason, $userId) {
+            $id = $journal instanceof Journal ? $journal->getKey() : $journal;
+            $orig = Journal::query()->whereKey($id)->lockForUpdate()->firstOrFail();
+
+            if ($orig->tipe !== 'closing') {
+                throw JournalException::notReversible('Hanya jurnal penutup yang dibalik lewat pembukaan kembali tahun buku.');
+            }
+            if (Journal::query()->where('reversed_of_id', $orig->getKey())->exists()) {
+                throw JournalException::alreadyReversed($orig->nomor);
+            }
+
+            $lines = array_map(fn ($l) => [
+                'account_id' => (int) $l->account_id,
+                'debit' => (string) $l->kredit,
+                'kredit' => (string) $l->debit,
+                'memo' => $l->memo,
+                'contact_id' => $l->contact_id,
+            ], JournalLine::query()->where('journal_id', $orig->getKey())->orderBy('line_no')->get()->all());
+
+            try {
+                $rev = $this->post(new JournalDraft(
+                    tanggal: CarbonImmutable::parse($orig->tanggal)->toDateString(),
+                    tipe: 'reversal',
+                    lines: $lines,
+                    memo: mb_substr("Pembalik penutup {$orig->nomor}: {$reason}", 0, 500),
+                    sourceType: $orig->source_id ? $orig->source_type : 'journal',
+                    sourceId: (int) ($orig->source_id ?? $orig->getKey()),
+                    reversedOfId: (int) $orig->getKey(),
+                    branchId: $orig->branch_id ? (int) $orig->branch_id : null,
+                    userId: $userId,
+                    closing: true,
+                ));
+            } catch (QueryException $e) {
+                if (($e->errorInfo[0] ?? null) === '23000') {
+                    throw JournalException::alreadyReversed($orig->nomor);
+                }
+                throw $e;
+            }
+
+            $this->audit->log('journal', (int) $orig->getKey(), 'void_closing', ['nomor' => $orig->nomor], [
+                'jurnal_pembalik_id' => (int) $rev->getKey(), 'jurnal_pembalik' => $rev->nomor,
             ], $reason, (int) $this->current->id(), $userId);
 
             return $rev;
