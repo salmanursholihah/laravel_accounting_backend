@@ -178,6 +178,7 @@ return [
         App\Modules\Stock\StockServiceProvider::class,
         App\Modules\Sales\SalesServiceProvider::class,
         App\Modules\Purchasing\PurchasingServiceProvider::class,
+        App\Modules\FixedAssets\FixedAssetsServiceProvider::class,
     ])->toArray(),
 
     /*

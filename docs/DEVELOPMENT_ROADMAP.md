@@ -15,3 +15,8 @@
 - [ ] 7H Stok opname, pemindahan barang (aturan approval bawaan sudah menyebut keduanya)
 - [ ] 7I Anggaran
 - [ ] Step 8 (komisi, target, gaji, FIFO, Midtrans ALG-12, e-Faktur): jangan dimulai sebelum persetujuan
+
+## Tahap 7D Aset Tetap dan Penyusutan (ALG-08)
+- [x] 7D-1 Kategori Aset, Aset Tetap (garis lurus), jadwal penyusutan idempoten, jurnal per kategori, checklist Akhir Bulan (ditulis, belum terverifikasi tes)
+- [x] 7D-2 (ditulis, belum terverifikasi tes) Disposisi aset (penyusutan sampai bulan sebelum pelepasan, laba/rugi pelepasan; hak `disposisi_aset_tetap`, penomoran `asset_disposal` sudah ada)
+- [ ] 7D-3 Saldo menurun, Perubahan Aset, Pindah Aset + Lokasi, aset fiskal, migrasi aset lama (akumulasi awal), pembatalan penyusutan

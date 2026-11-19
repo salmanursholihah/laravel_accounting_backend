@@ -1,27 +1,18 @@
-# PATCH 7C-2 / 7C-3 - Sesi Rekonsiliasi Bank, ALG-09, checklist Akhir Bulan
+# patch_7d2: Disposisi Aset Tetap (7D-2)
+Basis: laravel_accounting_backend_1.zip (sudah berisi 7C dan 7D-1). BELUM pernah dijalankan: sandbox tanpa PHP/MySQL (hanya keseimbangan kurung dicek).
 
-Basis: laravel_accounting_backend_step7a.zip + patch_7b.zip + patch_7c1.zip. Salin ke akar proyek (struktur folder sama).
+## Pasang
+1. Ekstrak di root proyek (timpa). Berkas yang MENIMPA kode lama: `app/Modules/FixedAssets/FixedAssetsServiceProvider.php`,
+   `app/Modules/FixedAssets/routes.php`, `app/Modules/FixedAssets/Assets/FixedAssetService.php`, dan docs/*.md (hanya penambahan).
+2. `php artisan migrate`  (migrasi baru 2026_11_21_140001_create_asset_disposals)
+3. `php artisan route:clear`
+4. `php artisan test --filter=AssetDisposalTest` lalu `php artisan test` penuh di MySQL 8 asli.
 
-## File BARU
-- app/Modules/CashBank/Models/BankReconciliation.php, ReconciliationItem.php
-- app/Modules/CashBank/Reconciliation/ReconciliationMatcher.php, BankReconciliationService.php
-- app/Modules/CashBank/Http/Controllers/BankReconciliationController.php
-- tests/Feature/CashBank/ReconciliationMatcherTest.php, BankReconciliationTest.php
+## Isi
+Migrasi; Models/AssetDisposal; Disposal/{DisposalCalculator, AssetDisposalService, AssetDisposalPostingHandler}; Http/Controllers/AssetDisposalController;
+provider mendaftarkan handler + aturan jurnal ke orkestrator; routes `asset-disposals` (hak `disposisi_aset_tetap`); tes AssetDisposalTest.
 
-## File DIUBAH (menimpa; asalnya dari patch_7c1 dan patch_7b, dibaca penuh)
-- app/Modules/CashBank/Reconciliation/routes.php (rute koran tetap + 11 rute `bank-reconciliations`)
-- app/Modules/Accounting/Periods/Close/PeriodCloseService.php (item rekonsiliasi_bank: "na" -> ok/warning; +1 metode)
-- tests/Feature/Accounting/PeriodCloseTest.php (asersi "na" rekonsiliasi diganti "ok"; +1 tes)
-- docs/*.md
-
-## Cara pasang
-1. Salin isi zip ke proyek. Tidak ada migrasi, composer, atau provider baru.
-2. `php artisan route:clear` lalu `php artisan test --filter=Reconciliation` dan `--filter=PeriodClose`.
-
-## Rute (prefix api/v1, fitur rekonsiliasi_bank)
-GET/POST bank-reconciliations; GET/DELETE bank-reconciliations/{id}; GET {id}/suggestions; POST {id}/auto-match;
-POST {id}/matches; DELETE {id}/matches/{itemId}; POST {id}/transactions; POST {id}/complete; POST {id}/reopen.
-
-## BELUM terverifikasi
-Semua tes belum pernah dijalankan (sandbox tanpa PHP/MySQL); hanya keseimbangan kurung yang dicek.
-Tidak dikerjakan: ALG-09 1-ke-banyak (butuh migrasi). Asumsi rumus tokenOverlap tercatat di DECISIONS.md.
+## Catatan keamanan
+Semua query lewat model BelongsToCompany atau DB::table dengan company_id; FK komposit (id, company_id); uang BCMath/DECIMAL(19,4);
+posting dan void hanya lewat PostingOrchestrator (hak per dokumen, periode terbuka, satu transaksi, audit log).
+Keputusan terbuka ada di docs/DECISIONS.md bagian 7D-2.

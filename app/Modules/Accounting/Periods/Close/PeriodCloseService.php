@@ -44,7 +44,7 @@ class PeriodCloseService
             $this->checkTrialBalance($period),
             $this->checkBalancesMatch(),
             $this->item('transaksi_berulang', 'Transaksi berulang', 'na', 'Modul transaksi berulang belum tersedia.'),
-            $this->item('penyusutan_aset', 'Penyusutan aset tetap', 'na', 'Modul aset tetap belum tersedia.'),
+            $this->checkDepreciation($period),
             $this->checkBankReconciliation($period),
         ]);
     }
@@ -223,6 +223,34 @@ class PeriodCloseService
         return $diff === []
             ? $this->item('saldo_cocok', 'Saldo ringkas cocok dengan jurnal', 'ok', 'account_balances sama dengan hasil penjumlahan journal_lines.')
             : $this->item('saldo_cocok', 'Saldo ringkas cocok dengan jurnal', 'failed', 'Saldo ringkas tidak cocok dengan jurnal (' . count($diff) . ' kombinasi akun-periode). Bangun ulang saldo.', ['jumlah' => count($diff), 'contoh' => array_slice($diff, 0, 5)]);
+    }
+
+    /**
+     * Penyusutan aset (7D, ALG-11): 'na' bila perusahaan belum punya aset aktif; 'failed' bila ada aset yang jatuh tempo disusutkan
+     * di periode ini tetapi belum diproses (memblokir: jadwal harus berurutan, jadi tidak bisa dikejar setelah periode terkunci).
+     */
+    private function checkDepreciation(AccountingPeriod $period): array
+    {
+        $cid = $this->current->id();
+        $start = $period->tanggal_mulai->toDateString();
+        $base = DB::table('fixed_assets')->where('company_id', $cid)->where('status', 'aktif');
+
+        if (! (clone $base)->exists()) {
+            return $this->item('penyusutan_aset', 'Penyusutan aset tetap', 'na', 'Belum ada aset tetap aktif.');
+        }
+
+        $due = (clone $base)->where('tanggal_mulai_susut', '<=', $start)
+            ->whereRaw('TIMESTAMPDIFF(MONTH, tanggal_mulai_susut, ?) < umur_bulan', [$start])
+            ->whereNotExists(fn ($q) => $q->select(DB::raw(1))->from('depreciation_schedules as s')
+                ->whereColumn('s.asset_id', 'fixed_assets.id')->whereColumn('s.company_id', 'fixed_assets.company_id')
+                ->where('s.jenis', 'komersial')->where('s.period_id', $period->getKey()))
+            ->count();
+
+        if ($due === 0) {
+            return $this->item('penyusutan_aset', 'Penyusutan aset tetap', 'ok', 'Penyusutan periode ini sudah dijalankan atau tidak ada aset yang perlu disusutkan.');
+        }
+
+        return $this->item('penyusutan_aset', 'Penyusutan aset tetap', 'failed', "{$due} aset belum disusutkan untuk periode ini. Jalankan penyusutan periode ini dulu.", ['jumlah' => $due]);
     }
 
     /**

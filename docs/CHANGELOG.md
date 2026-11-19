@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 7D-1 - Aset Tetap dan Penyusutan garis lurus (ditulis, belum terverifikasi tes)
+Baru:
+- Migrasi `2026_11_20_130001_create_fixed_asset_tables.php`: `asset_categories`, `fixed_assets`, `depreciation_runs`, `depreciation_schedules`
+- Modul `app/Modules/FixedAssets/` (provider, model, FixedAssetException, AssetCategoryService, FixedAssetService, DepreciationService, 3 controller, routes)
+- Rute: `asset-categories` (CRUD), `fixed-assets` (CRUD + `{id}/schedule`), `periods/{id}/depreciation-preview`, `periods/{id}/depreciation` (hak khusus tutup_periode)
+- Tes: `tests/Feature/FixedAssets/FixedAssetTest.php`
+Diubah:
+- `config/app.php`: provider `FixedAssetsServiceProvider` ditambahkan di akhir daftar modul.
+- `PeriodCloseService`: item `penyusutan_aset` tidak lagi "na": na (tanpa aset aktif) / ok / failed (ada aset belum disusutkan).
+
 ## 7C-2 dan 7C-3 - Sesi rekonsiliasi bank, ALG-09, checklist Akhir Bulan (ditulis, belum terverifikasi tes)
 Baru:
 - `CashBank/Models/BankReconciliation.php`, `ReconciliationItem.php`
@@ -36,3 +46,10 @@ Skema: tidak ada migrasi baru (`period_close_logs` dan `company_settings.kebijak
 - BARU: Models BankStatement/BankStatementLine; Reconciliation/BankStatementCsvParser, BankStatementService; BankStatementController; Reconciliation/routes.php (5 rute `bank-statements`, fitur `rekening_koran`).
 - DIUBAH: CashBankServiceProvider (+ load routes Reconciliation).
 - Tes: BankStatementCsvParserTest (murni), BankStatementTest. Tidak ada migrasi baru (tabel sudah ada sejak skema awal).
+
+## 7D-2 Disposisi Aset Tetap (belum terverifikasi tes)
+- Migrasi 2026_11_21_140001: tabel `asset_disposals` (+ UNIQUE `aktif_key` satu disposisi aktif per aset) dan kolom `fixed_assets.tanggal_dilepas`.
+- `app/Modules/FixedAssets/Disposal/*`: DisposalCalculator, AssetDisposalService (draf), AssetDisposalPostingHandler (orkestrator ALG-02, aturan jurnal ALG-04).
+- Endpoint `asset-disposals` (daftar, pratinjau, detail, buat, ubah, hapus); Posting/Void lewat `documents/asset_disposal/{id}/post|void`.
+- FixedAssetService: aset berstatus dilepas tidak bisa diubah; aset yang punya disposisi tidak bisa dihapus.
+- Tes: tests/Feature/FixedAssets/AssetDisposalTest.php.

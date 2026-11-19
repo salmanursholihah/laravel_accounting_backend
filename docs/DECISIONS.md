@@ -42,3 +42,28 @@
 - Buka kembali: wajib alasan; ditolak bila ada periode akuntansi Closed yang beririsan. Status jadi `dibuka_kembali` dan boleh diubah lagi seperti `berjalan`.
 - Checklist Akhir Bulan: item `rekonsiliasi_bank` = warning (bukan failed), sesuai ALG-11 ("peringatan"). Hanya rekening yang punya rekening koran beririsan dengan periode yang diperiksa.
 - RBAC: Akuntan/Owner penuh, Admin hanya lihat, Kasir tidak punya akses (matriks apa adanya).
+
+## 7D-1 (Aset Tetap, ALG-08)
+- Penyusutan hanya garis lurus. Bulanan = (harga - residu) / umur, dipotong ke 4 desimal (bcdiv); bulan terakhir = sisa sehingga nilai buku akhir = residu. Dijaga agar akumulasi tidak melewati harga - residu.
+- Awal penyusutan memakai kolom yang SUDAH ada `company_settings.aturan_awal_penyusutan` (default tabel `acquisition_month`, bukan `next_month` seperti usulan saya). Hasilnya disimpan di `fixed_assets.tanggal_mulai_susut` (selalu tanggal 1) saat aset dibuat, jadi mengubah Preferensi tidak mengubah aset lama.
+- Jadwal harus berurutan: bulan ke-n hanya bisa diproses bila n-1 bulan sebelumnya sudah ada; kalau tidak ditolak `previous_period_not_run` dan tidak ada yang tertulis. Konsekuensinya penyusutan tidak bisa dikejar sesudah periode terkunci, maka checklist Akhir Bulan memberi status `failed` (memblokir) untuk aset yang belum disusutkan. ALG-11 hanya menyebut gagal untuk hitung ulang HPP dan neraca saldo; ini penyesuaian saya, mohon dikonfirmasi.
+- Satu jurnal per (periode, kategori), tanggal = akhir periode, tipe `auto`, source_type `depreciation_run`, source_id = `depreciation_runs.id`. Dr akun beban, Cr akun akumulasi (dari Kategori Aset). Run dengan total 0 tidak membuat jurnal.
+- Idempotensi: unique `uq_dep_sched` (aset, jenis, periode) dan `uq_dep_run` (periode, kategori) ditambah pelewatan aset yang sudah punya jadwal. Seluruh periode dalam satu transaksi dengan kunci baris periode.
+- Perolehan aset dicatat manual tanpa jurnal perolehan (usulan 3 diterima). Aset dengan tanggal perolehan sebelum tanggal mulai pembukuan ditolak (`before_books_start`), karena butuh akumulasi awal.
+- Field keuangan aset (kategori, tanggal, harga, residu, umur) terkunci setelah ada jadwal; hanya nama dan keterangan yang bisa diubah. Akun Kategori Aset terkunci setelah dipakai aset.
+- Hak: kategori memakai fitur `kategori_aset`, aset `aset_tetap` (Admin = C), menjalankan penyusutan memakai hak khusus `tutup_periode` (Owner, Akuntan), sama dengan Proses Akhir Bulan.
+- Kolom `jenis` ('fiskal') disiapkan di jadwal tetapi belum dipakai.
+- Belum ada pembatalan penyusutan. Jurnal penyusutan yang di-void lewat Jurnal Umum tidak membatalkan baris jadwalnya.
+- Penyusutan otomatis lewat scheduler tidak dibuat (usulan 2 diterima: manual per periode).
+
+## 7D-2 Disposisi Aset (keputusan yang saya ambil, mohon dikonfirmasi)
+1. Penyusutan wajib lengkap SAMPAI BULAN SEBELUM bulan pelepasan (bulan pelepasan sendiri tidak disusutkan). Bila periode bulan pelepasan
+   sudah terlanjur disusutkan, akumulasinya ikut dihitung. Belum lengkap = `depreciation_not_run`; ada jadwal sesudah bulan pelepasan = `depreciation_after_disposal`.
+2. Laba dan rugi memakai satu akun sistem `laba_rugi_pelepasan_aset` (7-1000): Kredit bila laba, Debit bila rugi (sesuai Tahap 4).
+3. Nilai pelepasan 0 = penghapusan (write-off), tanpa akun penerimaan; seluruh nilai buku menjadi rugi.
+4. Akun penerimaan harus bertipe `asset` (kas/bank/piutang), aktif, bukan akun induk.
+5. Angka (akumulasi, nilai buku, laba/rugi) dihitung ulang saat POSTING di dalam transaksi dengan aset terkunci, bukan saat draf.
+6. Void memulihkan aset ke `aktif`, tetapi DITOLAK bila penyusutan bulan setelah bulan pelepasan sudah dijalankan (jadwal akan bolong
+   karena belum ada pembatalan penyusutan) atau jurnal penerimaan sudah direkonsiliasi bank.
+7. Satu disposisi aktif per aset, dijaga UNIQUE pada kolom turunan `aktif_key` (NULL bila void).
+8. Jurnal disposisi tidak melewati gate approval: modul Approval tidak ada di zip ini. Aturan approval bawaan `asset_disposal` (Tahap 7) berlaku begitu modul itu terpasang.
